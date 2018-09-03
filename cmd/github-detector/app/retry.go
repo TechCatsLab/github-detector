@@ -54,10 +54,11 @@ func (rt *RetryTask) Do(ctx context.Context) (err error) {
 		return errors.New("assertion fail")
 	}
 
-	if info.Times > 0 {
-		info.Times--
-		info.SPool.Schedule(NewRetryTaskContext(info), rt)
-		return nil
+	for index := 0; index < info.Times; index++ {
+		err = rt.task.Do(rt.ctx)
+		if err == nil {
+			return nil
+		}
 	}
 
 	return err

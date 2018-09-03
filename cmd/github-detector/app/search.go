@@ -97,8 +97,6 @@ func SearchTaskFunc(ctx context.Context) (err error) {
 	}()
 
 	for {
-		if info.Min < info.Max {
-		}
 		rsr, err = client.Search(info.Language, info.Pushed, info.Min, info.Max, 1)
 		if err != nil {
 			return err
