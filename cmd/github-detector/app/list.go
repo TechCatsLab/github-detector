@@ -9,15 +9,16 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"strings"
 
-	"github.com/TechCatsLab/logging/logrus"
 	github "github.com/google/go-github/github"
 
-	"github.com/fengyfei/github-detector/pkg/downloader"
-	"github.com/fengyfei/github-detector/pkg/filetool"
-	pool "github.com/fengyfei/github-detector/pkg/github"
-	store "github.com/fengyfei/github-detector/pkg/store/file/yaml"
+	"github.com/TechCatsLab/logging/logrus"
+
+	"github.com/TechCatsLab/github-detector/pkg/filetool"
+	pool "github.com/TechCatsLab/github-detector/pkg/github"
+	"github.com/TechCatsLab/github-detector/pkg/sync"
 )
 
 type (
@@ -29,7 +30,7 @@ type (
 		Repo  string
 		Path  string
 
-		Info *store.File
+		Info *sync.Map
 
 		GPool pool.Pool
 	}
@@ -105,30 +106,30 @@ func ListTaskFunc(ctx context.Context) error {
 	for {
 		rc, err := client.List(info.Owner, info.Repo, info.Path)
 		if err != nil {
-			logrus.Errorf("LIST %s FAILED, ERROR -- %v", info.URL, err)
+			logrus.Errorf("List %s failed, error -- %v", info.URL, err)
 			return err
 		}
 		dt := filter(rc, info, repo)
 
 		if dt.Type == NoVendorType {
 			repo.Type = "no vendor"
-			repo.Status = "FINISH"
-			logrus.Infof("FINISH: %s, NO VENDOR", info.URL)
+			repo.Status = "Finish"
+			logrus.Infof("Finish: %s, no vendor", info.URL)
 			return nil
 		}
 
 		if dt.Type == NotSupportType {
 			repo.Type = "not support"
-			repo.Status = "FINISH"
-			logrus.Infof("FINISH: %s, NOT SUPPORT", info.URL)
+			repo.Status = "Finish"
+			logrus.Infof("Finish: %s, not support", info.URL)
 			return nil
 		}
 
 		if dt.Type == VendorType {
 			src, err := download(dt)
 			if err != nil {
-				repo.Status = "FAIL: " + err.Error()
-				logrus.Errorf("FAIL: %s, ERROR -- %v", info.URL, err)
+				repo.Status = "Fail: " + err.Error()
+				logrus.Errorf("Fail: %s, error -- %v", info.URL, err)
 				return err
 			}
 			src.URL = info.URL
@@ -136,13 +137,13 @@ func ListTaskFunc(ctx context.Context) error {
 
 			err = cache(info.Dir+strings.Replace(info.URL, "/", "-", -1), src)
 			if err != nil {
-				logrus.Errorf("CACHE FAILED -- %s", info.URL)
+				logrus.Errorf("Cache failed -- %s", info.URL)
 				return err
 			}
-			logrus.Infof("CACHE SUCCESS -- %s", info.URL)
+			logrus.Infof("Cache success -- %s", info.URL)
 
 			repo.Status = "SUCCESS"
-			logrus.Infof("SUCCESS: %s", info.URL)
+			logrus.Infof("Success: %s", info.URL)
 			return nil
 		}
 	}
@@ -199,14 +200,13 @@ func filter(rc []*github.RepositoryContent, info *ListTaskInfo, repo *Info) *Dow
 
 func download(dt *DownloadTask) (*Source, error) {
 	src := &Source{}
-	client := downloader.NewClient(downloader.DefaultTimeout)
 
 	if dt.Type != VendorType {
 		return nil, nil
 	}
 
 	if dt.Conf != "" {
-		resp, err := client.Get(dt.Conf)
+		resp, err := http.Get(dt.Conf)
 		if err != nil {
 			return nil, err
 		}
@@ -218,7 +218,7 @@ func download(dt *DownloadTask) (*Source, error) {
 	}
 
 	if dt.Lock != "" {
-		resp, err := client.Get(dt.Lock)
+		resp, err := http.Get(dt.Lock)
 		if err != nil {
 			return nil, err
 		}

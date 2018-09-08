@@ -8,7 +8,7 @@ package main
 import (
 	"github.com/TechCatsLab/logging/logrus"
 
-	"github.com/fengyfei/github-detector/cmd/github-detector/app"
+	"github.com/TechCatsLab/github-detector/cmd/github-detector/app"
 )
 
 func main() {

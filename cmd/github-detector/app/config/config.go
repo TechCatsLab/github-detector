@@ -11,22 +11,30 @@ import (
 
 	"github.com/TechCatsLab/scheduler"
 
-	"github.com/fengyfei/github-detector/pkg/filetool"
-	"github.com/fengyfei/github-detector/pkg/github"
-	store "github.com/fengyfei/github-detector/pkg/store/file/yaml"
+	"github.com/TechCatsLab/github-detector/pkg/filetool"
+	"github.com/TechCatsLab/github-detector/pkg/github"
+	"github.com/TechCatsLab/github-detector/pkg/sync"
 )
 
 // GitHubDetectorConfiguration is the main context object for the detector.
 type GitHubDetectorConfiguration struct {
 	ConfigurationPath string
 	MirrorPath        string
-	StorePath         string
+	StorePath         StorePath
 
 	Configuration *Configuration
-	Mirrors       *store.File
+	Mirrors       *sync.Map
 
 	GPool github.Pool
 	SPool *scheduler.Pool
+}
+
+// StorePath -
+type StorePath struct {
+	Root  string
+	Repo  string
+	Cache string
+	Repos string
 }
 
 // Configuration -
@@ -52,14 +60,14 @@ type configuration struct {
 
 // LoadConfiguration -
 func LoadConfiguration(path string) (*Configuration, error) {
-	f, err := filetool.Open(path, filetool.RDONLY, 0644)
+	file, err := filetool.Open(path, filetool.RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer file.Close()
 
 	var c configuration
-	err = filetool.NewDecoder(f).Decode(&c)
+	err = filetool.NewDecoder(file).Decode(&c)
 	if err != nil {
 		return nil, err
 	}
@@ -72,28 +80,28 @@ func LoadConfiguration(path string) (*Configuration, error) {
 		c.Stars.Min = c.Stars.Max
 	}
 
-	i, err := StringToTime(c.Interval, " ")
+	interva, err := StringToTime(c.Interval, " ")
 	if err != nil {
 		return nil, err
 	}
 
-	p, err := StringToTime(c.Pushed, " ")
+	pushed, err := StringToTime(c.Pushed, " ")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Configuration{
-		Interval: i,
+		Interval: interva,
 		Language: c.Language,
-		Pushed:   p,
+		Pushed:   pushed,
 		Min:      c.Stars.Min,
 		Max:      c.Stars.Max,
 		Tokens:   c.Tokens,
 	}, nil
 }
 
-// ExportLoadConfiguration -
-func ExportLoadConfiguration(c *Configuration, path string) error {
+// ExportConfiguration -
+func ExportConfiguration(c *Configuration, path string) error {
 	var config = &configuration{
 		Language: c.Language,
 		Tokens:   c.Tokens,
@@ -101,23 +109,23 @@ func ExportLoadConfiguration(c *Configuration, path string) error {
 	config.Stars.Min = c.Min
 	config.Stars.Max = c.Max
 
-	i, err := TimeToString(c.Interval, " ")
+	interval, err := TimeToString(c.Interval, " ")
 	if err != nil {
 		return err
 	}
-	config.Interval = i
+	config.Interval = interval
 
-	p, err := TimeToString(c.Pushed, " ")
+	pushed, err := TimeToString(c.Pushed, " ")
 	if err != nil {
 		return err
 	}
-	config.Pushed = p
+	config.Pushed = pushed
 
-	f, err := filetool.Open(path, filetool.TRUNC, 0644)
+	file, err := filetool.Open(path, filetool.TRUNC, 0644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer file.Close()
 
-	return filetool.NewEncoder(f).Encode(config)
+	return filetool.NewEncoder(file).Encode(config)
 }

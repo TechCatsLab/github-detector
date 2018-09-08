@@ -8,20 +8,21 @@ package app
 import (
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/TechCatsLab/logging/logrus"
 	"github.com/TechCatsLab/scheduler"
 
-	"github.com/fengyfei/github-detector/cmd/github-detector/app/config"
-	"github.com/fengyfei/github-detector/cmd/github-detector/app/mirror"
-	"github.com/fengyfei/github-detector/cmd/github-detector/app/options"
-	"github.com/fengyfei/github-detector/pkg/filetool"
-	pool "github.com/fengyfei/github-detector/pkg/github"
-	store "github.com/fengyfei/github-detector/pkg/store/file/yaml"
-	"github.com/fengyfei/github-detector/pkg/version"
-	"github.com/fengyfei/github-detector/pkg/version/verflag"
+	"github.com/TechCatsLab/github-detector/cmd/github-detector/app/config"
+	"github.com/TechCatsLab/github-detector/cmd/github-detector/app/mirror"
+	"github.com/TechCatsLab/github-detector/cmd/github-detector/app/options"
+	"github.com/TechCatsLab/github-detector/pkg/filetool"
+	pool "github.com/TechCatsLab/github-detector/pkg/github"
+	"github.com/TechCatsLab/github-detector/pkg/sync"
+	"github.com/TechCatsLab/github-detector/pkg/version"
+	"github.com/TechCatsLab/github-detector/pkg/version/verflag"
 )
 
 // NewDetector creates a *cobra.Command object with default parameters.
@@ -55,31 +56,56 @@ func Run(c *config.GitHubDetectorConfiguration) error {
 	logrus.Infof("Version: %+v", version.Get())
 
 	var err error
+	defer func() {
+		if err != nil {
+			logrus.Fatalf("%v", err)
+		}
+	}()
+
 	c.Configuration, err = config.LoadConfiguration(c.ConfigurationPath)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		return err
 	}
 	c.Mirrors, err = mirror.LoadMirrors(c.MirrorPath)
 	if err != nil {
-		logrus.Fatalf("%v", err)
+		return err
 	}
 	c.SPool = scheduler.New(len(c.Configuration.Tokens), len(c.Configuration.Tokens))
 	c.GPool = pool.NewPool(c.Configuration.Tokens...)
-	err = os.MkdirAll(c.StorePath+"/repos/", 0755)
-	if err != nil {
-		logrus.Fatalf("%v", err)
-	}
-	err = os.MkdirAll(c.StorePath+"/cache/", 0755)
-	if err != nil {
-		logrus.Fatalf("%v", err)
-	}
 
-	return run(c)
+	var now time.Time
+	for {
+		now = time.Now()
+		c.StorePath.Repo = c.StorePath.Root + RepoDir + now.Format("2006-01-02") + "/"
+		c.StorePath.Repos = c.StorePath.Root + RepoDir + now.Format("2006-01-02") + "/" + ReposDir
+		c.StorePath.Cache = c.StorePath.Root + RepoDir + now.Format("2006-01-02") + "/" + CacheDir
+		err = os.MkdirAll(c.StorePath.Repo, 0755)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(c.StorePath.Repos, 0755)
+		if err != nil {
+			return err
+		}
+		err = os.MkdirAll(c.StorePath.Cache, 0755)
+		if err != nil {
+			return err
+		}
+
+		if err = run(c); err != nil {
+			logrus.Errorf("Running failed, %v", err)
+			os.RemoveAll(c.StorePath.Repo)
+			<-time.After(time.Hour)
+			continue
+		}
+
+		<-time.After(time.Until(now.Add(c.Configuration.Interval)))
+	}
 }
 
 func run(c *config.GitHubDetectorConfiguration) error {
 	stc := NewSearchTaskContext(&SearchTaskInfo{
-		Dir:      c.StorePath,
+		RepoDir:  c.StorePath.Repo,
 		Language: c.Configuration.Language,
 		Pushed:   c.Configuration.Pushed,
 		Min:      c.Configuration.Min,
@@ -92,39 +118,36 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		SPool: c.SPool,
 	}), srt)
 	c.SPool.Wait()
-	logrus.Infof("SEARCH TASK FINISHED")
+	logrus.Infof("Search task finished.")
 
 	type r struct {
 		FullName string `json:"full_name"`
 	}
 	rs, err := func() ([]r, error) {
 		rs := make([]r, 0)
-		f, err := filetool.Open(c.StorePath+"/repos.json", filetool.RDONLY, 0644)
+		file, err := filetool.Open(c.StorePath.Repo+ReposJSON, filetool.RDONLY, 0644)
 		if err != nil {
 			return nil, err
 		}
-		return rs, filetool.NewDecoder(f).Decode(&rs)
+		return rs, filetool.NewDecoder(file).Decode(&rs)
 	}()
 	if err != nil {
-		logrus.Errorf("Opening repos.json failed, %v", err)
+		logrus.Errorf("Getting repos failed, %v", err)
 		return err
 	}
 
-	infof, err := store.Open(c.StorePath + "/info.yaml")
-	if err != nil {
-		logrus.Errorf("Opening info.yaml failed, %v", err)
-		return err
-	}
-	defer infof.SaveAndClose()
+	infof, err := sync.Open("")
+	defer infof.Close()
+	defer infof.Save(c.StorePath.Repo + InfoJSON)
 
 	for index := range rs {
 		i := strings.Index(rs[index].FullName, "/")
 		if i == -1 || i+2 > len(rs[index].FullName) {
-			logrus.Errorf("invalid full name: %s", rs[index])
+			logrus.Errorf("Invalid full name: %s", rs[index])
 			continue
 		}
 		ltc := NewListTaskContext(&ListTaskInfo{
-			Dir:   c.StorePath + "/cache/",
+			Dir:   c.StorePath.Cache,
 			URL:   "github.com/" + rs[index].FullName,
 			Owner: rs[index].FullName[:i],
 			Repo:  rs[index].FullName[i+1:],
@@ -138,11 +161,11 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		}), lrt)
 	}
 	c.SPool.Wait()
-	logrus.Info("LIST TASK FINISHED")
+	logrus.Info("List task finished.")
 
 	itc := NewIndexTaskContext(&IndexTaskInfo{
-		CacheDir: c.StorePath + "/cache/",
-		ReposDir: c.StorePath + "/repos/",
+		CacheDir: c.StorePath.Cache,
+		ReposDir: c.StorePath.Repos,
 		Info:     infof,
 	})
 	irt := NewRetryTask(itc, scheduler.TaskFunc(IndexTaskFunc))
@@ -151,7 +174,7 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		SPool: c.SPool,
 	}), irt)
 	c.SPool.Wait()
-	logrus.Info("INDEX TASK FINISHED")
+	logrus.Info("Index task finished.")
 
 	return nil
 }

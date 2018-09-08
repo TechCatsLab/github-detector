@@ -17,4 +17,15 @@ const (
 	ListTaskKey ContextType = "List-Task-Key"
 	// IndexTaskKey -
 	IndexTaskKey ContextType = "Index-Task-Key"
+
+	// RepoDir -
+	RepoDir = "repo-"
+	// ReposDir -
+	ReposDir = "repos/"
+	// CacheDir -
+	CacheDir = "cache/"
+	// ReposJSON -
+	ReposJSON = "repos.json"
+	// InfoJSON -
+	InfoJSON = "info.json"
 )

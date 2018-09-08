@@ -6,22 +6,22 @@
 package mirror
 
 import (
-	store "github.com/fengyfei/github-detector/pkg/store/file/yaml"
+	"github.com/TechCatsLab/github-detector/pkg/sync"
 )
 
 // Mirror -
 type Mirror struct {
-	Package string `yaml:"package"`
-	Repo    string `yaml:"repo"`
-	VCS     string `yaml:"vcs"`
+	Package string `json:"package"`
+	Repo    string `json:"repo"`
+	VCS     string `json:"vcs"`
 }
 
 // LoadMirrors -
-func LoadMirrors(path string) (*store.File, error) {
-	return store.Open(path)
+func LoadMirrors(path string) (*sync.Map, error) {
+	return sync.Open(path)
 }
 
 // ExportMirrors -
-func ExportMirrors(f *store.File) error {
-	return f.SaveAndClose()
+func ExportMirrors(m *sync.Map, path string) error {
+	return m.Save(path)
 }

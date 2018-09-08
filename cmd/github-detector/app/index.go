@@ -14,11 +14,11 @@ import (
 
 	"github.com/TechCatsLab/logging/logrus"
 
-	"github.com/fengyfei/github-detector/pkg/codec"
-	"github.com/fengyfei/github-detector/pkg/codec/conf"
-	"github.com/fengyfei/github-detector/pkg/codec/lock"
-	"github.com/fengyfei/github-detector/pkg/filetool"
-	store "github.com/fengyfei/github-detector/pkg/store/file/yaml"
+	"github.com/TechCatsLab/github-detector/pkg/codec"
+	"github.com/TechCatsLab/github-detector/pkg/codec/conf"
+	"github.com/TechCatsLab/github-detector/pkg/codec/lock"
+	"github.com/TechCatsLab/github-detector/pkg/filetool"
+	"github.com/TechCatsLab/github-detector/pkg/sync"
 )
 
 type (
@@ -27,7 +27,7 @@ type (
 		CacheDir string
 		ReposDir string
 
-		Info *store.File
+		Info *sync.Map
 	}
 
 	// Dep -
@@ -58,7 +58,7 @@ func IndexTaskFunc(ctx context.Context) error {
 
 	files, err := ioutil.ReadDir(info.CacheDir)
 	if err != nil {
-		logrus.Errorf("READ CACHE DIR FAILED, ERROR -- %v", err)
+		logrus.Errorf("Read cache directory failed, error -- %v", err)
 	}
 
 	deps := make(map[string]*Dep, len(files))
@@ -66,14 +66,14 @@ func IndexTaskFunc(ctx context.Context) error {
 		for key, val := range deps {
 			file, err := filetool.Open(info.ReposDir+strings.Replace(key, "/", "-", -1), filetool.TRUNC, 0644)
 			if err != nil {
-				logrus.Errorf("STORE %s FAILED, ERROR -- %v", key, err)
+				logrus.Errorf("Store %s failed, error -- %v", key, err)
 				info.Info.Upsert(key, &Info{URL: val.URL, Type: val.Type, Status: "FAIL: " + err.Error()})
 				continue
 			}
 			err = filetool.NewEncoder(file).Encode(val)
 			file.Close()
 			if err != nil {
-				logrus.Errorf("STORE %s FAILED, ERROR -- %v", key, err)
+				logrus.Errorf("Store %s failed, error -- %v", key, err)
 				info.Info.Upsert(key, &Info{URL: val.URL, Type: val.Type, Status: "FAIL: " + err.Error()})
 				continue
 			}
@@ -84,7 +84,7 @@ func IndexTaskFunc(ctx context.Context) error {
 		name := files[index].Name()
 		file, err := filetool.Open(info.CacheDir+name, filetool.RDONLY, 0644)
 		if err != nil {
-			logrus.Errorf("OPEN %s FAILED, ERROR -- %v", err)
+			logrus.Errorf("Open %s failed, error -- %v", err)
 			continue
 		}
 
@@ -92,7 +92,7 @@ func IndexTaskFunc(ctx context.Context) error {
 		err = filetool.NewDecoder(file).Decode(&src)
 		file.Close()
 		if err != nil && err != io.EOF {
-			logrus.Errorf("DECODE %s FAILED, ERROR -- %v", err)
+			logrus.Errorf("Decode %s failed, error -- %v", err)
 			continue
 		}
 
@@ -119,7 +119,7 @@ func IndexTaskFunc(ctx context.Context) error {
 		if len(src.Conf) != 0 {
 			dep.Conf, err = c.ParseConfFile(src.Conf)
 			if err != nil && err != io.EOF {
-				logrus.Errorf("PARSE CONF FILE %s FAILED, ERROR -- %v", err)
+				logrus.Errorf("Parse conf file %s failed, error -- %v", err)
 				info.Info.Upsert(src.URL, &Info{URL: src.URL, Type: src.Type, Status: "FAIL: " + err.Error()})
 				continue
 			}
@@ -137,7 +137,7 @@ func IndexTaskFunc(ctx context.Context) error {
 		if len(src.Lock) != 0 {
 			dep.Lock, err = c.ParseLockFile(src.Lock)
 			if err != nil && err != io.EOF {
-				logrus.Errorf("PARSE Lock FILE %s FAILED, ERROR -- %v", err)
+				logrus.Errorf("Parse lock file %s failed, error -- %v", err)
 				info.Info.Upsert(src.URL, &Info{URL: src.URL, Type: src.Type, Status: "FAIL: " + err.Error()})
 				continue
 			}

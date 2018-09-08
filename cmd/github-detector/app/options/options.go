@@ -3,8 +3,8 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	"github.com/fengyfei/github-detector/cmd/github-detector/app/config"
-	"github.com/fengyfei/github-detector/pkg/filetool"
+	"github.com/TechCatsLab/github-detector/cmd/github-detector/app/config"
+	"github.com/TechCatsLab/github-detector/pkg/filetool"
 )
 
 // GitHubDetectorOptions is the main context object for the detector.
@@ -22,7 +22,7 @@ func NewGitHubDetectorOptions() *GitHubDetectorOptions {
 // AddFlags adds flags for a specific GitHubDetectorOptions to the specified FlagSet.
 func (s *GitHubDetectorOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.ConfigurationPath, "config", "config.json", "Specify configuration file path.")
-	fs.StringVar(&s.MirrorPath, "mirror", "mirror.yaml", "Specify mirror repositories' file path.")
+	fs.StringVar(&s.MirrorPath, "mirror", "mirror.json", "Specify mirror repositories' file path.")
 	fs.StringVar(&s.StorePath, "store", ".", "Specify the path to store files.")
 }
 
@@ -46,6 +46,8 @@ func (s *GitHubDetectorOptions) Config() (*config.GitHubDetectorConfiguration, e
 	return &config.GitHubDetectorConfiguration{
 		ConfigurationPath: cp,
 		MirrorPath:        mp,
-		StorePath:         sp,
+		StorePath: config.StorePath{
+			Root: sp + "/",
+		},
 	}, nil
 }

@@ -56,6 +56,11 @@ func Abs(name string) (string, error) {
 	return filepath.Abs(name)
 }
 
+// Ext -
+func Ext(name string) string {
+	return filepath.Ext(name)
+}
+
 // NewEncoder -
 func NewEncoder(f *os.File) *json.Encoder {
 	encoder := json.NewEncoder(f)
