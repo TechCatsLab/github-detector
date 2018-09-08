@@ -4,4 +4,4 @@
 github.com/fengyfei/github-detector/downloader/README.md
 
 # go build
-cmd/github-detector/github-detector
+build/*
