@@ -10,8 +10,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/fengyfei/github-detector/pkg/codec/conf"
-	"github.com/fengyfei/github-detector/pkg/codec/lock"
+	"github.com/TechCatsLab/github-detector/pkg/codec/conf"
+	"github.com/TechCatsLab/github-detector/pkg/codec/lock"
 )
 
 // The Config struct from glide.

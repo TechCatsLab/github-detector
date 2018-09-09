@@ -6,12 +6,12 @@
 package codec
 
 import (
-	"github.com/fengyfei/github-detector/pkg/codec/conf"
-	"github.com/fengyfei/github-detector/pkg/codec/dep"
-	"github.com/fengyfei/github-detector/pkg/codec/glide"
-	"github.com/fengyfei/github-detector/pkg/codec/godep"
-	"github.com/fengyfei/github-detector/pkg/codec/govendor"
-	"github.com/fengyfei/github-detector/pkg/codec/lock"
+	"github.com/TechCatsLab/github-detector/pkg/codec/conf"
+	"github.com/TechCatsLab/github-detector/pkg/codec/dep"
+	"github.com/TechCatsLab/github-detector/pkg/codec/glide"
+	"github.com/TechCatsLab/github-detector/pkg/codec/godep"
+	"github.com/TechCatsLab/github-detector/pkg/codec/govendor"
+	"github.com/TechCatsLab/github-detector/pkg/codec/lock"
 )
 
 // Codec -

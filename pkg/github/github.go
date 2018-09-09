@@ -20,9 +20,13 @@ import (
 func (c *Client) Search(language string, pushed time.Duration, min, max, page int) (*github.RepositoriesSearchResult, error) {
 	c.bucket.Wait(1)
 
-	rs, _, err := c.Client.Search.Repositories(context.Background(),
+	rs, resp, err := c.Client.Search.Repositories(context.Background(),
 		fmt.Sprintf("language:%s+stars:%d..%d+pushed:>=%s&sort=stars&order=desc&page=%d&per_page=100",
 			language, min, max, time.Now().Add(-pushed).Format("2006-01-02"), page), nil)
+	if err != nil && resp.Remaining == 0 {
+		<-time.After(time.Until(resp.Reset.Time))
+	}
+
 	return rs, err
 }
 
@@ -32,6 +36,10 @@ func (c *Client) Search(language string, pushed time.Duration, min, max, page in
 func (c *Client) List(owner, repo, path string) ([]*github.RepositoryContent, error) {
 	c.bucket.Wait(1)
 
-	_, dc, _, err := c.Client.Repositories.GetContents(context.Background(), owner, repo, path, nil)
+	_, dc, resp, err := c.Client.Repositories.GetContents(context.Background(), owner, repo, path, nil)
+	if err != nil && resp.Remaining == 0 {
+		<-time.After(time.Until(resp.Reset.Time))
+	}
+
 	return dc, err
 }

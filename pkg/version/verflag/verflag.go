@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/fengyfei/github-detector/pkg/version"
+	"github.com/TechCatsLab/github-detector/pkg/version"
 )
 
 var (

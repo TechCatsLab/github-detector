@@ -8,8 +8,8 @@ package dep
 import (
 	"github.com/pelletier/go-toml"
 
-	"github.com/fengyfei/github-detector/pkg/codec/conf"
-	"github.com/fengyfei/github-detector/pkg/codec/lock"
+	"github.com/TechCatsLab/github-detector/pkg/codec/conf"
+	"github.com/TechCatsLab/github-detector/pkg/codec/lock"
 )
 
 // ManifestName is the manifest file name used by dep.

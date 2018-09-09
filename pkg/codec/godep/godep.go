@@ -8,8 +8,8 @@ package godep
 import (
 	"encoding/json"
 
-	"github.com/fengyfei/github-detector/pkg/codec/conf"
-	"github.com/fengyfei/github-detector/pkg/codec/lock"
+	"github.com/TechCatsLab/github-detector/pkg/codec/conf"
+	"github.com/TechCatsLab/github-detector/pkg/codec/lock"
 )
 
 // The Godeps struct from godep.
