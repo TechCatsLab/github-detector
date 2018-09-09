@@ -118,7 +118,7 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		SPool: c.SPool,
 	}), srt)
 	c.SPool.Wait()
-	logrus.Infof("Search task finished.")
+	logrus.Infof("Search task finished")
 
 	type r struct {
 		FullName string `json:"full_name"`
@@ -136,9 +136,14 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		return err
 	}
 
-	infof, err := sync.Open("")
+	infof, _ := sync.Open("")
 	defer infof.Close()
-	defer infof.Save(c.StorePath.Repo + InfoJSON)
+	defer func() {
+		err := infof.Save(c.StorePath.Repo + InfoJSON)
+		if err != nil {
+			logrus.Errorf("Save repositories' information failed, %v", err)
+		}
+	}()
 
 	for index := range rs {
 		i := strings.Index(rs[index].FullName, "/")
@@ -161,7 +166,7 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		}), lrt)
 	}
 	c.SPool.Wait()
-	logrus.Info("List task finished.")
+	logrus.Info("List task finished")
 
 	itc := NewIndexTaskContext(&IndexTaskInfo{
 		CacheDir: c.StorePath.Cache,
@@ -174,7 +179,7 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		SPool: c.SPool,
 	}), irt)
 	c.SPool.Wait()
-	logrus.Info("Index task finished.")
+	logrus.Info("Index task finished")
 
 	return nil
 }

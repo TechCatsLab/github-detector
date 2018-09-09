@@ -58,7 +58,7 @@ func IndexTaskFunc(ctx context.Context) error {
 
 	files, err := ioutil.ReadDir(info.CacheDir)
 	if err != nil {
-		logrus.Errorf("Read cache directory failed, error -- %v", err)
+		logrus.Errorf("Read cache directory failed, %v", err)
 	}
 
 	deps := make(map[string]*Dep, len(files))
@@ -66,14 +66,14 @@ func IndexTaskFunc(ctx context.Context) error {
 		for key, val := range deps {
 			file, err := filetool.Open(info.ReposDir+strings.Replace(key, "/", "-", -1), filetool.TRUNC, 0644)
 			if err != nil {
-				logrus.Errorf("Store %s failed, error -- %v", key, err)
+				logrus.Errorf("Store %s failed, %v", key, err)
 				info.Info.Upsert(key, &Info{URL: val.URL, Type: val.Type, Status: "FAIL: " + err.Error()})
 				continue
 			}
 			err = filetool.NewEncoder(file).Encode(val)
 			file.Close()
 			if err != nil {
-				logrus.Errorf("Store %s failed, error -- %v", key, err)
+				logrus.Errorf("Store %s failed, %v", key, err)
 				info.Info.Upsert(key, &Info{URL: val.URL, Type: val.Type, Status: "FAIL: " + err.Error()})
 				continue
 			}
@@ -84,15 +84,15 @@ func IndexTaskFunc(ctx context.Context) error {
 		name := files[index].Name()
 		file, err := filetool.Open(info.CacheDir+name, filetool.RDONLY, 0644)
 		if err != nil {
-			logrus.Errorf("Open %s failed, error -- %v", err)
+			logrus.Errorf("Open %s failed, %v", err)
 			continue
 		}
 
 		var src Source
 		err = filetool.NewDecoder(file).Decode(&src)
 		file.Close()
-		if err != nil && err != io.EOF {
-			logrus.Errorf("Decode %s failed, error -- %v", err)
+		if err != nil {
+			logrus.Errorf("Decode %s failed, %v", err)
 			continue
 		}
 
@@ -118,38 +118,38 @@ func IndexTaskFunc(ctx context.Context) error {
 		}
 		if len(src.Conf) != 0 {
 			dep.Conf, err = c.ParseConfFile(src.Conf)
-			if err != nil && err != io.EOF {
-				logrus.Errorf("Parse conf file %s failed, error -- %v", err)
+			if err != nil {
+				logrus.Errorf("Parse conf file %s failed, %v", src.URL, err)
 				info.Info.Upsert(src.URL, &Info{URL: src.URL, Type: src.Type, Status: "FAIL: " + err.Error()})
-				continue
-			}
-			direct := dep.Conf.Deps()
-			for _, value := range direct {
-				d, ok := deps[value]
-				if ok {
-					d.Direct = append(d.Direct, src.URL)
-				} else {
-					d = &Dep{URL: value, Direct: []string{src.URL}}
+			} else {
+				direct := dep.Conf.Deps()
+				for _, value := range direct {
+					d, ok := deps[value]
+					if ok {
+						d.Direct = append(d.Direct, src.URL)
+					} else {
+						d = &Dep{URL: value, Direct: []string{src.URL}}
+					}
+					deps[value] = d
 				}
-				deps[value] = d
 			}
 		}
 		if len(src.Lock) != 0 {
 			dep.Lock, err = c.ParseLockFile(src.Lock)
 			if err != nil && err != io.EOF {
-				logrus.Errorf("Parse lock file %s failed, error -- %v", err)
+				logrus.Errorf("Parse lock file %s failed, %v", src.URL, err)
 				info.Info.Upsert(src.URL, &Info{URL: src.URL, Type: src.Type, Status: "FAIL: " + err.Error()})
-				continue
-			}
-			indirect := dep.Lock.Repos()
-			for _, value := range indirect {
-				d, ok := deps[value]
-				if ok {
-					d.Indirect = append(d.Indirect, src.URL)
-				} else {
-					d = &Dep{URL: value, Indirect: []string{src.URL}}
+			} else {
+				indirect := dep.Lock.Repos()
+				for _, value := range indirect {
+					d, ok := deps[value]
+					if ok {
+						d.Indirect = append(d.Indirect, src.URL)
+					} else {
+						d = &Dep{URL: value, Indirect: []string{src.URL}}
+					}
+					deps[value] = d
 				}
-				deps[value] = d
 			}
 		}
 	}

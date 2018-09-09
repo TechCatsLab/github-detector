@@ -3,6 +3,7 @@ package sync
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 
@@ -81,9 +82,9 @@ func (m *Map) Save(path string) error {
 	}
 	defer f.Close()
 
-	kvs := make(map[interface{}]interface{})
+	kvs := make(map[string]interface{})
 	m.objs.Range(func(key interface{}, value interface{}) bool {
-		kvs[key] = value
+		kvs[fmt.Sprintf("%v", key)] = value
 		return true
 	})
 

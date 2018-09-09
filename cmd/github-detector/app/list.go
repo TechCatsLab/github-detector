@@ -107,11 +107,11 @@ func ListTaskFunc(ctx context.Context) error {
 	for {
 		rc, resp, err := client.List(info.Owner, info.Repo, info.Path)
 		if err != nil && resp.Remaining == 0 {
-			logrus.Errorf("List %s failed, error -- %v", info.URL, err)
+			logrus.Errorf("List %s failed, %v", info.URL, err)
 			<-time.After(time.Until(resp.Reset.Time))
 			return err
 		} else if err != nil {
-			logrus.Errorf("List %s failed, error -- %v", info.URL, err)
+			logrus.Errorf("List %s failed, %v", info.URL, err)
 			return err
 		}
 		dt := filter(rc, info, repo)
@@ -134,7 +134,7 @@ func ListTaskFunc(ctx context.Context) error {
 			src, err := download(dt)
 			if err != nil {
 				repo.Status = "Fail: " + err.Error()
-				logrus.Errorf("Fail: %s, error -- %v", info.URL, err)
+				logrus.Errorf("Fail: %s, %v", info.URL, err)
 				return err
 			}
 			src.URL = info.URL

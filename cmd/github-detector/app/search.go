@@ -98,7 +98,7 @@ func SearchTaskFunc(ctx context.Context) (err error) {
 	for {
 		rsr, resp, err = client.Search(info.Language, info.Pushed, info.Min, max, 1)
 		if err != nil && resp.Remaining == 0 {
-			logrus.Errorf("Search %s failed, error -- %v", err)
+			logrus.Errorf("Search %s failed, %v", err)
 			<-time.After(time.Until(resp.Reset.Time))
 			continue
 		} else if err != nil {
