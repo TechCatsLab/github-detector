@@ -17,29 +17,21 @@ import (
 //
 // https://developer.github.com/v3/search/#search-repositories
 // https://help.github.com/articles/searching-repositories
-func (c *Client) Search(language string, pushed time.Duration, min, max, page int) (*github.RepositoriesSearchResult, error) {
+func (c *Client) Search(language string, pushed time.Duration, min, max, page int) (*github.RepositoriesSearchResult, *github.Response, error) {
 	c.bucket.Wait(1)
 
-	rs, resp, err := c.Client.Search.Repositories(context.Background(),
+	return c.Client.Search.Repositories(context.Background(),
 		fmt.Sprintf("language:%s+stars:%d..%d+pushed:>=%s&sort=stars&order=desc&page=%d&per_page=100",
 			language, min, max, time.Now().Add(-pushed).Format("2006-01-02"), page), nil)
-	if err != nil && resp.Remaining == 0 {
-		<-time.After(time.Until(resp.Reset.Time))
-	}
-
-	return rs, err
 }
 
 // List returns the contents of a file or directory in a repository.
 //
 // https://developer.github.com/v3/repos/contents/#get-contents
-func (c *Client) List(owner, repo, path string) ([]*github.RepositoryContent, error) {
+func (c *Client) List(owner, repo, path string) ([]*github.RepositoryContent, *github.Response, error) {
 	c.bucket.Wait(1)
 
 	_, dc, resp, err := c.Client.Repositories.GetContents(context.Background(), owner, repo, path, nil)
-	if err != nil && resp.Remaining == 0 {
-		<-time.After(time.Until(resp.Reset.Time))
-	}
 
-	return dc, err
+	return dc, resp, err
 }

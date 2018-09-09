@@ -83,8 +83,12 @@ func SearchTaskFunc(ctx context.Context) (err error) {
 		return index
 	}
 
-	rsr := &github.RepositoriesSearchResult{}
-	repos := []github.Repository(nil)
+	var (
+		rsr   *github.RepositoriesSearchResult
+		resp  *github.Response
+		repos []github.Repository
+		max   = info.Max
+	)
 	defer func() {
 		if err == nil {
 			err = store(info.RepoDir+ReposJSON, &repos)
@@ -92,8 +96,12 @@ func SearchTaskFunc(ctx context.Context) (err error) {
 	}()
 
 	for {
-		rsr, err = client.Search(info.Language, info.Pushed, info.Min, info.Max, 1)
-		if err != nil {
+		rsr, resp, err = client.Search(info.Language, info.Pushed, info.Min, max, 1)
+		if err != nil && resp.Remaining == 0 {
+			logrus.Errorf("Search %s failed, error -- %v", err)
+			<-time.After(time.Until(resp.Reset.Time))
+			continue
+		} else if err != nil {
 			return err
 		} else if rsr.GetIncompleteResults() {
 			err = errors.New("search results incomplete")
@@ -103,7 +111,7 @@ func SearchTaskFunc(ctx context.Context) (err error) {
 		repos = append(repos, rsr.Repositories[index:]...)
 		logrus.Infof("Search number: %d", len(repos))
 		if rsr.GetTotal() > 100 {
-			info.Max = rsr.Repositories[len(rsr.Repositories)-1].GetStargazersCount()
+			max = rsr.Repositories[len(rsr.Repositories)-1].GetStargazersCount()
 			continue
 		}
 		return nil

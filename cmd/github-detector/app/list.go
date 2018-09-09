@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	github "github.com/google/go-github/github"
 
@@ -104,8 +105,12 @@ func ListTaskFunc(ctx context.Context) error {
 	}()
 
 	for {
-		rc, err := client.List(info.Owner, info.Repo, info.Path)
-		if err != nil {
+		rc, resp, err := client.List(info.Owner, info.Repo, info.Path)
+		if err != nil && resp.Remaining == 0 {
+			logrus.Errorf("List %s failed, error -- %v", info.URL, err)
+			<-time.After(time.Until(resp.Reset.Time))
+			return err
+		} else if err != nil {
 			logrus.Errorf("List %s failed, error -- %v", info.URL, err)
 			return err
 		}
@@ -152,7 +157,7 @@ func ListTaskFunc(ctx context.Context) error {
 func filter(rc []*github.RepositoryContent, info *ListTaskInfo, repo *Info) *DownloadTask {
 	dt := &DownloadTask{}
 	for index := range rc {
-		switch rc[index].GetName() {
+		switch rc[index].GetPath() {
 		case "Gopkg.lock":
 			dt.Lock = rc[index].GetDownloadURL()
 			dt.Type = VendorType
@@ -170,30 +175,30 @@ func filter(rc []*github.RepositoryContent, info *ListTaskInfo, repo *Info) *Dow
 			dt.Type = VendorType
 			repo.Type = "glide"
 		case "Godeps":
-			info.Path = "Godeps"
+			info.Path = rc[index].GetPath()
 			repo.Type = "godep"
 			dt.Type = AgainType
 			return dt
-		case "Godeps.json":
+		case "Godeps/Godeps.json":
 			dt.Lock = rc[index].GetDownloadURL()
 			dt.Type = VendorType
 			repo.Type = "godep"
 		case "vendor":
 			if dt.Type == IgnoreType {
-				info.Path = "vendor"
+				info.Path = rc[index].GetPath()
 				dt.Type = AgainType
 			}
-		case "vendor.json":
+		case "vendor/vendor.json":
 			dt.Lock = rc[index].GetDownloadURL()
 			dt.Type = VendorType
 			repo.Type = "govendor"
 		}
 	}
-	if dt.Type == IgnoreType && info.Path != "vendor" {
-		dt.Type = NoVendorType
-	}
 	if dt.Type == IgnoreType && info.Path == "vendor" {
 		dt.Type = NotSupportType
+	}
+	if dt.Type == IgnoreType && info.Path != "vendor" {
+		dt.Type = NoVendorType
 	}
 	return dt
 }
