@@ -115,7 +115,6 @@ func run(c *config.GitHubDetectorConfiguration) error {
 	srt := NewRetryTask(stc, scheduler.TaskFunc(SearchTaskFunc))
 	c.SPool.Schedule(NewRetryTaskContext(&RetryTaskInfo{
 		Times: 3,
-		SPool: c.SPool,
 	}), srt)
 	c.SPool.Wait()
 	logrus.Infof("Search task finished")
@@ -162,7 +161,6 @@ func run(c *config.GitHubDetectorConfiguration) error {
 		lrt := NewRetryTask(ltc, scheduler.TaskFunc(ListTaskFunc))
 		c.SPool.Schedule(NewRetryTaskContext(&RetryTaskInfo{
 			Times: 3,
-			SPool: c.SPool,
 		}), lrt)
 	}
 	c.SPool.Wait()
@@ -176,7 +174,6 @@ func run(c *config.GitHubDetectorConfiguration) error {
 	irt := NewRetryTask(itc, scheduler.TaskFunc(IndexTaskFunc))
 	c.SPool.Schedule(NewRetryTaskContext(&RetryTaskInfo{
 		Times: 3,
-		SPool: c.SPool,
 	}), irt)
 	c.SPool.Wait()
 	logrus.Info("Index task finished")

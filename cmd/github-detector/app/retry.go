@@ -16,7 +16,6 @@ type (
 	// RetryTaskInfo -
 	RetryTaskInfo struct {
 		Times int
-		SPool *scheduler.Pool
 	}
 
 	// RetryTask -
