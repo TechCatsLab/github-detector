@@ -1,0 +1,11 @@
+package: demo
+import:
+- package: github.com/TechCatsLab/apix
+  subpackages:
+  - http/server
+  - http/server/middleware
+- package: github.com/TechCatsLab/logging
+  subpackages:
+  - logrus
+- package: github.com/spf13/viper
+  version: ^1.1.0

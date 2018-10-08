@@ -1,0 +1,15 @@
+package: github.com/TechCatsLab/apix
+import:
+- package: github.com/qiniu/api.v7
+  version: ^7.2.3
+- package: github.com/mozillazg/go-cos
+  version: ^0.7.0
+- package: github.com/dgrijalva/jwt-go
+  version: v3.2.0
+- package: github.com/auth0/go-jwt-middleware
+- package: github.com/rs/cors
+  version: v1.4.0
+- package: github.com/oschwald/maxminddb-golang
+  version: ^1.3.0
+- package: github.com/robfig/cron
+  version: ^1.1.0

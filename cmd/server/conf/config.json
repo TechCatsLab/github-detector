@@ -1,0 +1,13 @@
+{
+  "port": ":8080",
+  "middleware": {
+    "cors": {
+      "hosts": ["*"]
+    }
+  },
+  "show": [
+    "direct",
+    "indirect"
+  ],
+  "path": "/Users/zeng/Documents/github/repos/"
+}

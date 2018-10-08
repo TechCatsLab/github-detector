@@ -1,0 +1,12 @@
+package: github.com/TechCatsLab/logging
+import:
+- package: github.com/sirupsen/logrus
+  version: v1.0.6
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh
+- package: golang.org/x/sys
+  subpackages:
+  - unix
+- package: go.uber.org/zap
+  version: v1.9.1
